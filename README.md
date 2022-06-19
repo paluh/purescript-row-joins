@@ -39,7 +39,7 @@ type OuterJoin' = OuterJoin NULL NULL
 -- | 1. `Either` based tagging
 -- | 2. Merging tagged rows
 -- | 3. Sorting through `RowToList`
--- | 4. "Pair based folding" of sorted row
+-- | 4. "Pair based folding" of sorted list
 instance
   ( Eval (MapRow (Lift1 Left) r1) r1'
   , Eval (MapRow (Lift1 Right) r2) r2'
