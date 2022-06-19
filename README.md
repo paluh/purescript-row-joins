@@ -6,7 +6,7 @@ Type level row joins.
 
 Outer join seems to be working:
 
-```
+```purescript
 module Test.README where
 
 import Prelude
@@ -26,7 +26,7 @@ testOuterJoin _ = outerJoin (Proxy :: Proxy (LeftRow a)) (Proxy :: Proxy RightRo
 
 The base `OuterJoin` allows you to pass different nulls types for left and right row so the join is really polymorphic. I mean we used `OuterJoin'` which is just specialized to `Type`:
 
-```
+```purescript
 data NULL
 
 type OuterJoin' = OuterJoin NULL NULL
