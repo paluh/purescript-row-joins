@@ -2,19 +2,17 @@ module Row.Joins.Outer where
 
 import Data.Either (Either)
 import Data.Maybe (Maybe)
-import Data.Tuple (Tuple)
 import Data.Tuple.Nested (type (/\))
-import Data.Unit (Unit)
-import Prim.Row as R
+import Data.Tuple (Tuple)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Type.Eval (class Eval, Lift, TypeExpr)
 import Type.Eval.Foldable (FoldrWithIndex)
-import Type.Eval.Function (type (<<<), App)
+import Type.Eval.Function (type (<<<))
 import Type.Eval.Functor (Map)
 import Type.Eval.Row (Union)
 import Type.Eval.RowList (FromRow, ToRow)
-import Type.Eval.Tuple (Snd, Tuple')
+import Type.Eval.Tuple (Tuple')
 import Type.Prelude (Proxy(..))
 
 foreign import data Just :: forall k. k -> Maybe k
@@ -35,7 +33,6 @@ instance Eval (Lift1 f a) (f a)
 type MapRow :: forall k1 k2. (k1 -> TypeExpr k2) -> Row k1 -> TypeExpr (Row k2)
 type MapRow f = ToRow <<< Map f <<< FromRow
 
---
 -- infixl 10 type RL.Cons as :=
 --
 -- type Apply :: forall k1 k2. (k1 -> k2) -> k1 -> k2
@@ -73,28 +70,31 @@ instance
   ) =>
   Eval (OuterJoin null1 null2 r1 r2) u'
 
-instance (Eval accum accum', Join null1 null2 key value accum' accum'') => Eval (Step null1 null2 key value accum) accum''
+instance (Eval accum accum', DoStep null1 null2 key value accum' accum'') => Eval (Step null1 null2 key value accum) accum''
 
+type EmptyAccum :: forall k1 k2. Tuple (Maybe k1) (RowList k2)
 type EmptyAccum = Tuple' Nothing RL.Nil
 
+type AccumConsElem :: forall k1 k2. Symbol -> k1 -> RowList k1 -> Maybe (Tuple (Maybe k2) (RowList k1))
 type AccumConsElem key value list = Just (Tuple' Nothing (RL.Cons key value list))
+
+type AccumStoreElem :: forall k1 k2 k3. k1 -> k2 -> k3 -> Maybe (Tuple (Maybe (Tuple k1 k2)) k3)
 type AccumStoreElem key value list = Just (Tuple' (Just (Tuple' key value)) list)
+
+type AccumNonElem :: forall k1 k2. k1 -> Maybe (Tuple (Maybe k2) k1)
 type AccumNonElem list = Just (Tuple' Nothing list)
 
-class Join :: forall k1 k2. k1 -> k2 -> Symbol -> Either k1 k2 -> Accum k1 k2 -> Accum k1 k2 -> Constraint
-class Join n1 n2 l v acc acc' | n1 n2 l v acc -> acc'
+class DoStep :: forall k1 k2. k1 -> k2 -> Symbol -> Either k1 k2 -> Accum k1 k2 -> Accum k1 k2 -> Constraint
+class DoStep n1 n2 l v acc acc' | n1 n2 l v acc -> acc'
 
-instance Join n1 n2 key value Nothing (AccumStoreElem key value RL.Nil)
-else instance Join n1 n2 key value (AccumNonElem list) (AccumStoreElem key value list)
+instance DoStep n1 n2 key value Nothing (AccumStoreElem key value RL.Nil)
+else instance DoStep n1 n2 key value (AccumNonElem list) (AccumStoreElem key value list)
 
-else instance Join n1 n2 key (Left lv) (AccumStoreElem key (Right rv) list) (AccumConsElem key (Tuple' lv rv) list)
-else instance Join n1 n2 key (Right rv) (AccumStoreElem key (Left lv) list) (AccumConsElem key (Tuple' lv rv) list)
+else instance DoStep n1 n2 key (Left lv) (AccumStoreElem key (Right rv) list) (AccumConsElem key (Tuple' lv rv) list)
+else instance DoStep n1 n2 key (Right rv) (AccumStoreElem key (Left lv) list) (AccumConsElem key (Tuple' lv rv) list)
 
-else instance Join n1 n2 key' v' (AccumStoreElem key (Right rv) tail) (AccumStoreElem key' v' (RL.Cons key (Tuple' n1 rv) tail))
-else instance Join n1 n2 key' v' (AccumStoreElem key (Left lv) tail) (AccumStoreElem key' v' (RL.Cons key (Tuple' lv n2) tail))
-
--- FIXME: drop this
-else instance Join n1 n2 key' v acc (Just EmptyAccum)
+else instance DoStep n1 n2 key' v' (AccumStoreElem key (Right rv) tail) (AccumStoreElem key' v' (RL.Cons key (Tuple' n1 rv) tail))
+else instance DoStep n1 n2 key' v' (AccumStoreElem key (Left lv) tail) (AccumStoreElem key' v' (RL.Cons key (Tuple' lv n2) tail))
 
 outerJoin :: forall l o r. Eval (OuterJoin' l r) o => Proxy l -> Proxy r -> Proxy o
 outerJoin _ _ = Proxy
