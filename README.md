@@ -32,3 +32,19 @@ data NULL
 type OuterJoin' = OuterJoin NULL NULL
 ```
 
+
+## How?
+
+```purescript
+-- | 1. `Either` based tagging
+-- | 2. Merging tagged rows
+-- | 3. Sorting through `RowToList`
+-- | 4. "Pair based folding" of sorted row
+instance
+  ( Eval (MapRow (Lift1 Left) r1) r1'
+  , Eval (MapRow (Lift1 Right) r2) r2'
+  , Eval (Union r1' r2') u
+  , Eval ((ToRow <<< Finallize null1 null2 <<< FoldrWithIndex (Step null1 null2) (Lift Nothing) <<< FromRow) u) u'
+  ) =>
+  Eval (OuterJoin null1 null2 r1 r2) u'
+```
