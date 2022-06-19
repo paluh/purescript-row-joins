@@ -99,8 +99,8 @@ else instance Join n1 n2 key' v acc (Just EmptyAccum)
 outerJoin :: forall l o r. Eval (OuterJoin' l r) o => Proxy l -> Proxy r -> Proxy o
 outerJoin _ _ = Proxy
 
-type LeftRow = (foo :: Int, bar :: String)
+type LeftRow a = (foo :: a, bar :: String)
 type RightRow = (foo :: Boolean, baz :: String)
 
-z :: Proxy (baz :: Tuple' NULL String, bar :: Tuple' String NULL, foo :: Tuple' Int Boolean)
-z = outerJoin (Proxy :: Proxy LeftRow) (Proxy :: Proxy RightRow)
+z :: forall a. Proxy a -> Proxy (baz :: Tuple' NULL String, bar :: Tuple' String NULL, foo :: Tuple' a Boolean)
+z _ = outerJoin (Proxy :: Proxy (LeftRow a)) (Proxy :: Proxy RightRow)
